@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)",
+      "PowerShell(gh issue view *)",
+      "PowerShell(gh issue list *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue create *)",
+      "Bash(gh issue edit *)",
+      "Bash(gh issue comment *)",
+      "Bash(gh issue close *)",
+      "Bash(gh issue delete *)",
+      "Bash(gh api *)",
+      "Bash(gh repo *)",
+      "Bash(gh release *)",
+      "PowerShell(git push *)",
+      "PowerShell(git commit *)",
+      "PowerShell(gh pr *)",
+      "PowerShell(gh issue create *)",
+      "PowerShell(gh issue edit *)",
+      "PowerShell(gh issue comment *)",
+      "PowerShell(gh issue close *)",
+      "PowerShell(gh issue delete *)",
+      "PowerShell(gh api *)",
+      "PowerShell(gh repo *)",
+      "PowerShell(gh release *)"
+    ]
+  }
+}

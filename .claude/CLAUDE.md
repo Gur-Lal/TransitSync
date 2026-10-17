@@ -37,6 +37,8 @@ data/        Local raw GTFS files. Git-ignored, never commit
 ```
 pip install -r requirements.txt
 pytest                                   # all tests
+ruff check .                             # lint
+ruff format --check .                    # format check
 python scripts/load_gtfs.py data/rem --agency REM --dry-run
 ```
 
@@ -62,12 +64,24 @@ These come from the Mathematical Foundations wiki page. Do not break them.
 - GTFS times can pass 24:00:00. Use the `arrival_s` / `departure_s` seconds columns, not the text times
 - Always apply `calendar_dates` exceptions when picking service for a date
 - The REM feed is CC BY 4.0. Anything published needs the credit line from the "Reading GTFS Data" wiki page
-- Secrets go in `.env` (git-ignored). Never print, log or commit `SUPABASE_DB_URL` or any key. `.env.example` lists the names with empty values
+- Secrets go in `.env` (git-ignored). Never read `.env` directly, and never print, log or commit `SUPABASE_DB_URL` or any key. `.env.example` lists the names with empty values
+
+## Wiki
+
+- The wiki is cloned locally at `../TransitSync.wiki`. Read it there, never edit it
+- Key pages: Mathematical Foundations, Reading GTFS Data, Security
+- Mathematical Foundations is the source of truth for formulas. If code and the page disagree, stop and point out the difference instead of picking one
+
+## Skills
+
+- Project skills: `code-workflow`, `sim-logic`, `gtfs-data`, `python-tests`
+- The generic skills (`code-quality`, `testing-strategy`, `performance`, `security-audit`) assume a `src/` layout, `uv` and Python 3.10. In this repo, read `src/` as `simulator/`, `api/` and `scripts/`, install with pip and `requirements*.txt`, and target Python 3.12
+- If a skill conflicts with this file, this file wins
 
 ## Working with issues
 
 - Work is tracked as GitHub issues: user stories (`US-x.y`) with task sub-issues, plus a few `setup` issues
-- GitHub access is read-only. Read issues with `gh issue view <number>` and `gh issue list`. Never commit, push, open PRs, or create, edit or comment on issues. The team does all of that
+- GitHub access is read-only. Read issues with `gh issue view <number>` and `gh issue list`, and PRs with `gh pr view <number>`, `gh pr diff <number>` and `gh pr list`. Never commit, push, open PRs, or create, edit or comment on issues. The team does all of that
 - Before starting a task, read the issue and its parent user story
 - Stay inside the task's scope. If something else needs changing, say so at the end instead of doing it
 - When a task is done, suggest a commit message in the present tense that references the issue, e.g. `Add event queue and clock (#42)`

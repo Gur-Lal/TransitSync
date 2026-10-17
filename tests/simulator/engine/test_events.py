@@ -14,6 +14,7 @@ from simulator.engine.events import (
     SCHEMA_VERSION,
     Alighting,
     Boarding,
+    DepartureDue,
     EventSchemaError,
     EventType,
     Hold,
@@ -70,6 +71,13 @@ SAMPLE_EVENTS = [
     MissedConnection(
         time_s=180.0, passenger_id="p-2", train_id="metro-1", platform_id="green-west"
     ),
+    DepartureDue(
+        time_s=150.0,
+        train_id="metro-1",
+        station_id="mcgill",
+        platform_id="green-west",
+        scheduled_s=150.0,
+    ),
 ]
 
 
@@ -97,10 +105,12 @@ def _departure(**overrides):
     return TrainDeparture(**(values | overrides))
 
 
-def test_event_types_match_the_issue_list():
-    # Task 1.1.1 lists exactly these seven event types
+def test_event_types_match_the_issue_list_plus_the_decision_point():
+    # The seven types listed in Task 1.1.1, plus departure_due: the point where
+    # the hold decision is taken (Architecture sequence diagram)
     assert {event_type.value for event_type in EventType} == {
         "train_arrival",
+        "departure_due",
         "train_departure",
         "hold",
         "passenger_arrival",
@@ -123,10 +133,35 @@ def test_priority_order_matches_the_documented_platform_sequence():
         EventType.ALIGHTING,
         EventType.PASSENGER_ARRIVAL,
         EventType.BOARDING,
+        EventType.DEPARTURE_DUE,
         EventType.HOLD,
         EventType.TRAIN_DEPARTURE,
         EventType.MISSED_CONNECTION,
     ]
+
+
+def test_departure_due_record_has_fixed_keys_and_values():
+    assert list(SAMPLE_EVENTS[-1].to_record().items()) == [
+        ("schema_version", SCHEMA_VERSION),
+        ("event_type", "departure_due"),
+        ("time_s", 150.0),
+        ("train_id", "metro-1"),
+        ("station_id", "mcgill"),
+        ("platform_id", "green-west"),
+        ("scheduled_s", 150.0),
+    ]
+
+
+def test_departure_due_after_a_late_arrival_keeps_the_timetabled_time():
+    # Train arrived 20 s late, so its dwell ends 20 s after the timetable
+    due = DepartureDue(
+        time_s=170.0,
+        train_id="t",
+        station_id="s",
+        platform_id="p",
+        scheduled_s=150.0,
+    )
+    assert (due.time_s, due.scheduled_s) == (170.0, 150.0)
 
 
 def test_departure_record_has_fixed_keys_and_values():

@@ -17,6 +17,7 @@ from simulator.engine.events import (
     EVENT_PRIORITY,
     Alighting,
     Boarding,
+    DepartureDue,
     EventType,
     Hold,
     MissedConnection,
@@ -33,6 +34,9 @@ def make_event(event_type, time_s, tag="x"):
     builders = {
         EventType.TRAIN_ARRIVAL: lambda: TrainArrival(
             time_s=time_s, scheduled_s=time_s, disruption_delay_s=0, **train
+        ),
+        EventType.DEPARTURE_DUE: lambda: DepartureDue(
+            time_s=time_s, scheduled_s=time_s, **train
         ),
         EventType.TRAIN_DEPARTURE: lambda: TrainDeparture(
             time_s=time_s,
@@ -133,6 +137,26 @@ def test_handler_can_schedule_follow_up_events():
         (EventType.TRAIN_ARRIVAL, 100.0),
         (EventType.ALIGHTING, 100.0),
         (EventType.TRAIN_DEPARTURE, 130.0),
+    ]
+
+
+def test_hold_decision_at_departure_due_can_record_and_delay_the_departure():
+    # Sequence diagram flow: dwell ends at 150 s, a 30 s hold is decided,
+    # recorded at 150 s, and the departure follows at 180 s
+    scheduler = Scheduler()
+    scheduler.schedule(make_event(EventType.DEPARTURE_DUE, 150.0))
+
+    def handler(event):
+        if event.event_type is EventType.DEPARTURE_DUE:
+            scheduler.schedule(make_event(EventType.HOLD, 150.0))
+            scheduler.schedule(make_event(EventType.TRAIN_DEPARTURE, 180.0))
+
+    processed = []
+    scheduler.run_until(1000.0, lambda e: (processed.append(e), handler(e)))
+    assert [(e.event_type, e.time_s) for e in processed] == [
+        (EventType.DEPARTURE_DUE, 150.0),
+        (EventType.HOLD, 150.0),
+        (EventType.TRAIN_DEPARTURE, 180.0),
     ]
 
 

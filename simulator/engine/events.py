@@ -31,9 +31,20 @@ The order follows what happens at a platform in one instant:
 3. ``PASSENGER_ARRIVAL``: a passenger reaching the platform at this instant
    can still board
 4. ``BOARDING``: passengers get on during the dwell
-5. ``HOLD``: the hold decision is made once boarding is known
-6. ``TRAIN_DEPARTURE``: the train leaves
-7. ``MISSED_CONNECTION``: a connection is only missed once the train has left
+5. ``DEPARTURE_DUE``: the dwell has ended, so the hold decision is taken now,
+   once boarding at this instant is known
+6. ``HOLD``: the decision taken at ``DEPARTURE_DUE`` is recorded
+7. ``TRAIN_DEPARTURE``: the train leaves
+8. ``MISSED_CONNECTION``: a connection is only missed once the train has left
+
+Every event except ``DEPARTURE_DUE`` records something that happened.
+``DEPARTURE_DUE`` is the decision point of the Architecture sequence diagram:
+train logic schedules it when the train arrives, and handling it builds the
+observation, asks the strategy, records the ``Hold`` and schedules the
+``TrainDeparture``. The decision cannot be taken at arrival instead, because
+the prediction error depends on how far ahead the strategy looks (Mathematical
+Foundations section 7) and Metro dwell depends on who boards during the dwell
+(section 4).
 """
 
 import math
@@ -55,6 +66,7 @@ class EventType(StrEnum):
     """Every kind of event the simulation can produce."""
 
     TRAIN_ARRIVAL = "train_arrival"
+    DEPARTURE_DUE = "departure_due"
     TRAIN_DEPARTURE = "train_departure"
     HOLD = "hold"
     PASSENGER_ARRIVAL = "passenger_arrival"
@@ -70,9 +82,10 @@ EVENT_PRIORITY: dict[EventType, int] = {
     EventType.ALIGHTING: 1,
     EventType.PASSENGER_ARRIVAL: 2,
     EventType.BOARDING: 3,
-    EventType.HOLD: 4,
-    EventType.TRAIN_DEPARTURE: 5,
-    EventType.MISSED_CONNECTION: 6,
+    EventType.DEPARTURE_DUE: 4,
+    EventType.HOLD: 5,
+    EventType.TRAIN_DEPARTURE: 6,
+    EventType.MISSED_CONNECTION: 7,
 }
 
 
@@ -175,6 +188,26 @@ class TrainArrival(Event):
     platform_id: str = _id_field()
     scheduled_s: float = _seconds_field()
     disruption_delay_s: float = _seconds_field()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class DepartureDue(Event):
+    """A train's dwell has ended and it is ready to leave.
+
+    This is the decision point for holding: whoever handles it decides the
+    hold, records it as a ``Hold`` and schedules the ``TrainDeparture``. With
+    no control strategy the departure follows at the same time.
+
+    Attributes:
+        scheduled_s: timetabled departure time, in seconds. ``time_s`` can be
+            later when the train arrived late.
+    """
+
+    event_type: ClassVar[EventType] = EventType.DEPARTURE_DUE
+    train_id: str = _id_field()
+    station_id: str = _id_field()
+    platform_id: str = _id_field()
+    scheduled_s: float = _seconds_field()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -294,6 +327,7 @@ EVENT_CLASSES: dict[EventType, type[Event]] = {
     cls.event_type: cls
     for cls in (
         TrainArrival,
+        DepartureDue,
         TrainDeparture,
         Hold,
         PassengerArrival,

@@ -13,7 +13,12 @@ from dataclasses import dataclass
 import pytest
 
 from simulator.engine.event_queue import Scheduler
-from simulator.engine.events import Event, TrainArrival, TrainDeparture
+from simulator.engine.events import (
+    DepartureDue,
+    Event,
+    TrainArrival,
+    TrainDeparture,
+)
 
 MASTER_SEED = 20261017
 
@@ -59,8 +64,9 @@ TINY_TIMETABLE = (
 class TimetableComponent:
     """Runs trains exactly to the timetable, with no control strategy.
 
-    Each train arrives on time and leaves after its dwell. Nobody is held and
-    there are no disruptions, so every delay field is 0.
+    Each train arrives on time; its departure becomes due after the dwell, and
+    with no strategy it leaves at that same instant. Nobody is held and there
+    are no disruptions, so every delay field is 0.
     """
 
     def __init__(self, visits: tuple[StopVisit, ...]) -> None:
@@ -80,24 +86,33 @@ class TimetableComponent:
             )
 
     def handle(self, event: Event, scheduler: Scheduler) -> None:
-        if not isinstance(event, TrainArrival):
-            return
-        visit = self._visits[event.train_id]
-        departure_s = event.time_s + visit.dwell_s
-        scheduler.schedule(
-            TrainDeparture(
-                time_s=departure_s,
-                train_id=visit.train_id,
-                station_id=visit.station_id,
-                platform_id=visit.platform_id,
-                scheduled_s=departure_s,
-                disruption_delay_s=0.0,
-                hold_s=0.0,
-                boarded_count=0,
-                alighted_count=0,
-                onboard_load=0,
+        if isinstance(event, TrainArrival):
+            visit = self._visits[event.train_id]
+            scheduler.schedule(
+                DepartureDue(
+                    time_s=event.time_s + visit.dwell_s,
+                    train_id=visit.train_id,
+                    station_id=visit.station_id,
+                    platform_id=visit.platform_id,
+                    scheduled_s=visit.arrival_s + visit.dwell_s,
+                )
             )
-        )
+        elif isinstance(event, DepartureDue):
+            # No control strategy: no hold, so the train leaves right away
+            scheduler.schedule(
+                TrainDeparture(
+                    time_s=event.time_s,
+                    train_id=event.train_id,
+                    station_id=event.station_id,
+                    platform_id=event.platform_id,
+                    scheduled_s=event.scheduled_s,
+                    disruption_delay_s=0.0,
+                    hold_s=0.0,
+                    boarded_count=0,
+                    alighted_count=0,
+                    onboard_load=0,
+                )
+            )
 
 
 @pytest.fixture

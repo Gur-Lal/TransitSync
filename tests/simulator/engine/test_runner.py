@@ -2,14 +2,15 @@
 """Tests for the simulation runner (US-1.1, Task 1.1.6, #99).
 
 Uses the tiny network from ``tests/conftest.py``. Hand-worked timeline of the
-tiny timetable with no control strategy (arrival + dwell = departure):
+tiny timetable with no control strategy. The departure becomes due at
+arrival + dwell, and with no hold the train leaves at that same instant:
 
-    green-1  arrives 100, dwell 20 -> departs 120
-    rem-1    arrives 120, dwell 30 -> departs 150
-    green-2  arrives 280, dwell 20 -> departs 300
+    green-1  arrives 100, dwell 20 -> due and departs 120
+    rem-1    arrives 120, dwell 30 -> due and departs 150
+    green-2  arrives 280, dwell 20 -> due and departs 300
 
-At 120 s, rem-1 arriving comes before green-1 departing because arrivals are
-earlier in the documented tie order.
+At 120 s, rem-1 arriving comes before green-1's departure because arrivals are
+earlier in the documented tie order, and departure due comes before departure.
 """
 
 import json
@@ -23,9 +24,12 @@ from simulator.engine.runner import RunError, run_scenario
 EXPECTED_TIMELINE = [
     ("train_arrival", "green-1", 100.0),
     ("train_arrival", "rem-1", 120.0),
+    ("departure_due", "green-1", 120.0),
     ("train_departure", "green-1", 120.0),
+    ("departure_due", "rem-1", 150.0),
     ("train_departure", "rem-1", 150.0),
     ("train_arrival", "green-2", 280.0),
+    ("departure_due", "green-2", 300.0),
     ("train_departure", "green-2", 300.0),
 ]
 
@@ -53,10 +57,11 @@ def test_summary_matches_the_hand_count(
     summary = json.loads(result.summary_path.read_text(encoding="utf-8"))
     assert summary["master_seed"] == minimal_scenario.master_seed
     assert summary["duration_s"] == 600.0
-    assert summary["events_processed"] == 6
+    assert summary["events_processed"] == 9
     assert summary["events_pending"] == 0
     assert summary["end_time_s"] == 300.0
     assert summary["events_by_type"]["train_arrival"] == 3
+    assert summary["events_by_type"]["departure_due"] == 3
     assert summary["events_by_type"]["train_departure"] == 3
     assert summary["events_by_type"]["hold"] == 0
 
@@ -91,10 +96,11 @@ def test_streams_are_built_from_the_master_seed_and_passed_to_components(
 def test_period_ending_mid_dwell_leaves_the_departure_pending(
     tmp_path, minimal_scenario, build_streams, build_tiny_network
 ):
-    # Ends at 290 s: green-2 has arrived (280) but not departed (300)
+    # Ends at 290 s: green-2 has arrived (280) but its departure is only due
+    # at 300, so that event is still waiting
     scenario = replace(minimal_scenario, duration_s=290.0)
     result = run_scenario(scenario, build_streams, build_tiny_network, tmp_path)
-    assert _timeline(_read_log(result.events_path)) == EXPECTED_TIMELINE[:5]
+    assert _timeline(_read_log(result.events_path)) == EXPECTED_TIMELINE[:7]
     assert result.summary.events_pending == 1
     assert result.summary.end_time_s == 280.0
 

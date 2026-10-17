@@ -35,14 +35,23 @@ data/        Local raw GTFS files. Git-ignored, never commit
 ## Commands
 
 ```
-pip install -r requirements.txt
-pytest                                   # all tests
-ruff check .                             # lint
-ruff format --check .                    # format check
+py -3.12 -m venv .venv                   # once; project targets Python 3.12+
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest     # all tests
+.\.venv\Scripts\python.exe -m ruff check .            # lint
+.\.venv\Scripts\python.exe -m ruff format --check .   # format check
 python scripts/load_gtfs.py data/rem --agency REM --dry-run
 ```
 
-Update this section as real commands are added.
+Always run Python tools through `.venv`; the system Python (3.14) does not have the project dependencies. `requirements.txt` holds runtime packages, `requirements-dev.txt` adds pytest, Hypothesis and ruff. Update this section as real commands are added.
+
+## Engine core (US-1.1)
+
+- `simulator/engine/events.py` is the frozen event schema. Any change to an event type or field bumps `SCHEMA_VERSION`
+- Transferring passengers get one event per passenger (`passenger_id`, plus `group_id` for the transfer burst). Everyone else only appears as counts on `TrainDeparture` (`boarded_count` B, `alighted_count` A, `onboard_load` L)
+- Same-time events follow `EVENT_PRIORITY`, then scheduling order. The scheduler rejects events in the past or earlier in the tie order than the event just processed
+- The runner depends on small interfaces in `simulator/engine/runner.py`: `Scenario` (#98), `StreamFactory` (#9) and `ComponentFactory` / `Component` (#97, US-1.2, US-1.3). The stand-ins in `tests/conftest.py` are removed once the real ones are merged
+- Output files are byte-reproducible: fixed key order, `\n` line endings, no wall clock time or paths
 
 ## Rules for the simulator
 
@@ -95,8 +104,6 @@ These come from the Mathematical Foundations wiki page. Do not break them.
 
 ## Writing style for docs, issues and wiki pages
 
-- Plain student report voice. Do not address the reader
-- No em dashes
 - Define transit and math terms the first time they appear, at a first-year level
 - No trailing periods on bullet items in task issues
 - Task issue format:

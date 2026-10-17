@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Tests for the event queue and simulation clock (US-1.1, Task 1.1.2, #8)."""
 
 import math

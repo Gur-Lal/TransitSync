@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Event log writer and run summary.
 
 Part of US-1.1 (Deterministic event engine), Task 1.1.6 (#99). The event log

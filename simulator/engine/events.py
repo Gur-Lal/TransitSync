@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Event types and the versioned event record schema.
 
 Implements US-1.1 (Deterministic event engine), Task 1.1.1 (#96). Every

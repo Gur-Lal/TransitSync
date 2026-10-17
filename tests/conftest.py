@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Shared test fixtures.
 
 The tiny network, minimal scenario and stream factory here stand in for the

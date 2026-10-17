@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Simulation runner: runs one scenario from start to end and writes its output.
 
 Implements US-1.1 (Deterministic event engine), Task 1.1.6 (#99).
@@ -104,6 +105,28 @@ def _check_scenario(scenario: Scenario) -> None:
         )
 
 
+def _process_events(
+    scheduler: Scheduler,
+    components: Sequence[Component],
+    summary: RunSummary,
+    events_path: Path,
+    end_s: float,
+) -> None:
+    """Run the event loop to ``end_s`` (seconds), logging every event."""
+    with EventLogWriter(events_path) as event_log:
+
+        def process(event: Event) -> None:
+            # Log first, so the log shows the event before anything the
+            # components schedule in response to it
+            event_log.write(event)
+            summary.record(event)
+            for component in components:
+                component.handle(event, scheduler)
+
+        scheduler.run_until(end_s, process)
+    summary.events_pending = scheduler.pending
+
+
 def run_scenario(
     scenario: Scenario,
     build_streams: StreamFactory,
@@ -118,9 +141,6 @@ def run_scenario(
         build_components: builds the components from the scenario and streams.
         output_dir: folder for the event log and summary. Created if missing.
 
-    Returns:
-        The run summary and the paths of the files written.
-
     Raises:
         ValueError: the scenario duration or master seed is invalid.
         RunError: the output could not be written.
@@ -128,37 +148,20 @@ def run_scenario(
     _check_scenario(scenario)
     streams = build_streams(scenario.master_seed)
     components = list(build_components(scenario, streams))
-
     scheduler = Scheduler()
     for component in components:
         component.start(scheduler)
 
-    summary = RunSummary(
-        master_seed=scenario.master_seed, duration_s=float(scenario.duration_s)
-    )
+    seed = scenario.master_seed
+    summary = RunSummary(master_seed=seed, duration_s=float(scenario.duration_s))
     events_path = output_dir / EVENTS_FILE
     summary_path = output_dir / SUMMARY_FILE
-    log.info(
-        "starting run: seed=%d duration=%s s components=%d",
-        scenario.master_seed,
-        scenario.duration_s,
-        len(components),
-    )
-
+    log.info("starting run: seed=%d duration=%s s", seed, scenario.duration_s)
     try:
         output_dir.mkdir(parents=True, exist_ok=True)
-        with EventLogWriter(events_path) as event_log:
-
-            def process(event: Event) -> None:
-                # Log first, so the log shows the event before anything the
-                # components schedule in response to it
-                event_log.write(event)
-                summary.record(event)
-                for component in components:
-                    component.handle(event, scheduler)
-
-            scheduler.run_until(scenario.duration_s, process)
-        summary.events_pending = scheduler.pending
+        _process_events(
+            scheduler, components, summary, events_path, scenario.duration_s
+        )
         write_summary(summary, summary_path)
     except OSError as error:
         log.error("could not write run output to %s: %s", output_dir, error)

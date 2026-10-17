@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Event queue and simulation clock.
 
 Implements US-1.1 (Deterministic event engine), Task 1.1.2 (#8). Every other

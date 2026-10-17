@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Tests for the simulation runner (US-1.1, Task 1.1.6, #99).
 
 Uses the tiny network from ``tests/conftest.py``. Hand-worked timeline of the

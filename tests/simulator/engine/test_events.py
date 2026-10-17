@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Tests for the event types and record schema (US-1.1, Task 1.1.1, #96)."""
 
 import dataclasses

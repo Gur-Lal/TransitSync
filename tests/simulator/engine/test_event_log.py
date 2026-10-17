@@ -1,3 +1,4 @@
+# AI contribution: 50% or more AI-generated
 """Tests for the event log writer and run summary (US-1.1, Task 1.1.6, #99)."""
 
 import json

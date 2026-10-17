@@ -75,7 +75,7 @@ Each test folder under `run-output` contains `events.jsonl` (one line per event,
 | `simulator/engine/runner.py` | Runs one scenario and writes its output |
 | `tests/` | pytest and Hypothesis tests, mirroring the source tree |
 
-The developer guide on the wiki ("Engine Core Developer Guide") explains how the remaining US-1.1 tasks plug into the runner.
+The developer guide on the wiki ("Engine Core Developer Guide") explains how the US-1.1 tasks plug into the runner.
 
 ## Team
 
